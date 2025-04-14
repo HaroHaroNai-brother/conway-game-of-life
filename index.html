@@ -192,9 +192,12 @@
     }
 
     function randomGrid() {
-      grid = Array.from({ length: rows }, () =>
-        Array.from({ length: cols }, () => (Math.random() > 0.8 ? 1 : 0))
-      );
+      // Corrected randomGrid function
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          grid[y][x] = Math.random() > 0.8 ? 1 : 0;
+        }
+      }
       drawGrid();
     }
 

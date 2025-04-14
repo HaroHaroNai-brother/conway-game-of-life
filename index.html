@@ -193,7 +193,7 @@
 
     function randomGrid() {
       grid = Array.from({ length: rows }, () =>
-        Array.from({ length: cols }, () => (Math.random() > 0.8 ? 1 : 0))
+        Array.from({ length: cols }, () => (Math.random() > 10 ? 1 : 0))
       );
       drawGrid();
     }

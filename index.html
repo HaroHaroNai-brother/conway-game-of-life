@@ -3,33 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>🧬Conway's Game of Life🧬</title>
+  <title>Conway's Game of Life - Galaxy Mode</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       background: #111;
       color: #eee;
-      font-family: sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       text-align: center;
     }
     h1 {
-      margin-top: 10px;
+      margin: 20px 0 10px;
     }
     canvas {
       background: #222;
       display: block;
-      margin: 20px auto;
+      margin: 10px auto;
       border: 1px solid #444;
       cursor: crosshair;
       touch-action: none;
+      max-width: 90vw;
+      height: auto;
     }
     .controls {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       gap: 10px;
-      padding: 10px;
+      margin: 10px auto 20px;
+      max-width: 95vw;
     }
     button, select {
       padding: 10px 20px;
@@ -38,11 +41,16 @@
       border: none;
       color: #000;
       cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 0 5px #ff0b;
+      transition: background 0.2s;
     }
     button:hover, select:hover {
       background: #cc0;
     }
-
+    #colorSelector {
+      display: none;
+    }
     @media (max-width: 600px) {
       canvas {
         width: 90vw !important;
@@ -52,13 +60,19 @@
   </style>
 </head>
 <body>
-  <h1>🧬Conway's Game of Life🧬</h1>
-  <canvas id="game" width="500" height="500"></canvas>
+  <h1>⚙️ Conway's Game of Life</h1>
+  <canvas id="game"></canvas>
   <div class="controls">
     <button onclick="toggleRunning()">▶️ Start / ⏸ Pause</button>
     <button onclick="clearGrid()">🧹 Clear</button>
     <button onclick="randomGrid()">🔀 Random Pattern</button>
-    <label>Speed:
+    <button onclick="toggleGalaxyMode()">🌌 Toggle Galaxy Mode</button>
+    <label id="colorSelector">
+      Select Color:
+      <input type="color" id="colorPicker" onchange="setColor(this.value)" />
+    </label>
+    <label>
+      Speed:
       <select id="speedControl" onchange="setSpeed(this.value)">
         <option value="200">0.25x</option>
         <option value="100">0.5x</option>
@@ -68,27 +82,29 @@
       </select>
     </label>
   </div>
+
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
 
+    let size = 10;
+    let cols, rows;
+    let grid;
+    let running = false;
+    let dragging = false;
+    let speed = 50;
+    let galaxyMode = false;
+    let cellColor = "#0ff";
+
     function resizeCanvas() {
-      const min = Math.min(window.innerWidth, window.innerHeight) * 0.9;
-      canvas.width = min;
-      canvas.height = min;
+      const minDim = Math.min(window.innerWidth, window.innerHeight) * 0.9;
+      canvas.width = minDim;
+      canvas.height = minDim;
       cols = Math.floor(canvas.width / size);
       rows = Math.floor(canvas.height / size);
       grid = createGrid();
       drawGrid();
     }
-
-    let size = 10;
-    let cols = canvas.width / size;
-    let rows = canvas.height / size;
-    let grid = createGrid();
-    let running = false;
-    let dragging = false;
-    let speed = 50;
 
     function createGrid() {
       return Array.from({ length: rows }, () => Array(cols).fill(0));
@@ -112,6 +128,7 @@
     canvas.addEventListener("mousemove", e => {
       if (dragging) toggleCell(e);
     });
+
     canvas.addEventListener("touchstart", e => {
       dragging = true;
       toggleCell(e.touches[0]);
@@ -126,9 +143,15 @@
       for (let y = 0; y < rows; y++) {
         for (let x = 0; x < cols; x++) {
           if (grid[y][x]) {
-            ctx.fillStyle = "#0ff";
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = "#0ff";
+            if (galaxyMode) {
+              ctx.fillStyle = `hsl(${Math.random() * 360}, 100%, 70%)`;
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = ctx.fillStyle;
+            } else {
+              ctx.fillStyle = cellColor;
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = cellColor;
+            }
             ctx.fillRect(x * size, y * size, size - 1, size - 1);
             ctx.shadowBlur = 0;
           }
@@ -177,6 +200,16 @@
 
     function setSpeed(val) {
       speed = parseInt(val);
+    }
+
+    function toggleGalaxyMode() {
+      galaxyMode = !galaxyMode;
+      document.getElementById("colorSelector").style.display = galaxyMode ? "none" : "inline-block";
+      drawGrid();
+    }
+
+    function setColor(value) {
+      cellColor = value;
     }
 
     function loop() {

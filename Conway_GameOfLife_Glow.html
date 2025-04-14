@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Conway's Game of Life - Galaxy & Color Mode</title>
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      background: #000;
+      display: block;
+      margin: 20px auto;
+      border: 1px solid #444;
+      cursor: crosshair;
+    }
+    button, select {
+      margin: 10px;
+      padding: 10px 20px;
+      background: #ff0;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover, select:hover {
+      background: #cc0;
+    }
+    #colorPicker {
+      display: inline-block;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <h1>🌌 Conway's Game of Life</h1>
+  <canvas id="game" width="500" height="500"></canvas><br>
+
+  <button onclick="running = !running">▶️ Start / ⏸ Pause</button>
+  <button onclick="clearGrid()">🧹 Clear</button>
+  <button onclick="randomGrid()">🔀 Random Pattern</button>
+  <button onclick="toggleColorMode()">🌌 Toggle Galaxy Mode</button>
+
+  <label id="colorPickerLabel" style="display: none;">Choose Cell Color:
+    <input type="color" id="colorPicker" value="#ffff00">
+  </label>
+
+  <label>Speed:
+    <select id="speedControl" onchange="setSpeed(this.value)">
+      <option value="200">0.25x</option>
+      <option value="100">0.5x</option>
+      <option value="50">1x</option>
+      <option value="25">1.5x</option>
+      <option value="10" selected>2x</option>
+    </select>
+  </label>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const size = 10;
+    const rows = canvas.height / size;
+    const cols = canvas.width / size;
+    let grid = createGrid();
+    let running = false;
+    let dragging = false;
+    let previousStates = [];
+    let speed = 10;
+    let galaxyMode = true;
+    let customColor = "#ffff00";
+
+    const colorPicker = document.getElementById("colorPicker");
+    const colorPickerLabel = document.getElementById("colorPickerLabel");
+
+    colorPicker.addEventListener("input", () => {
+      customColor = colorPicker.value;
+      drawGrid();
+    });
+
+    function createGrid() {
+      return Array.from({ length: rows }, () => Array(cols).fill(0));
+    }
+
+    canvas.addEventListener("mousedown", e => {
+      dragging = true;
+      toggleCell(e);
+    });
+    canvas.addEventListener("mouseup", () => dragging = false);
+    canvas.addEventListener("mousemove", e => {
+      if (dragging) toggleCell(e);
+    });
+
+    function toggleCell(e) {
+      const x = Math.floor(e.offsetX / size);
+      const y = Math.floor(e.offsetY / size);
+      if (x >= 0 && x < cols && y >= 0 && y < rows) {
+        grid[y][x] = 1;
+        drawGrid();
+      }
+    }
+
+    function randomColor() {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 100%, 60%)`;
+    }
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (grid[y][x]) {
+            ctx.fillStyle = galaxyMode ? randomColor() : customColor;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fillRect(x * size, y * size, size - 1, size - 1);
+            ctx.shadowBlur = 0;
+          }
+        }
+      }
+    }
+
+    function serializeGrid(g) {
+      return g.map(row => row.join("")).join("");
+    }
+
+    function updateGrid() {
+      const next = createGrid();
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          let neighbors = 0;
+          for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+              if (i === 0 && j === 0) continue;
+              const ny = y + i;
+              const nx = x + j;
+              if (ny >= 0 && ny < rows && nx >= 0 && nx < cols) {
+                neighbors += grid[ny][nx];
+              }
+            }
+          }
+          if (grid[y][x] && (neighbors === 2 || neighbors === 3)) next[y][x] = 1;
+          else if (!grid[y][x] && neighbors === 3) next[y][x] = 1;
+        }
+      }
+
+      const currentState = serializeGrid(next);
+      if (previousStates.includes(currentState)) {
+        clearGrid();
+        previousStates = [];
+      } else {
+        previousStates.push(currentState);
+        if (previousStates.length > 50) previousStates.shift();
+
+        const dying = [];
+        for (let y = 0; y < rows; y++) {
+          for (let x = 0; x < cols; x++) {
+            if (grid[y][x] && !next[y][x]) {
+              dying.push([x, y]);
+            }
+          }
+        }
+        grid = next;
+        animateDyingCells(dying);
+      }
+      drawGrid();
+    }
+
+    function clearGrid() {
+      grid = createGrid();
+      previousStates = [];
+      drawGrid();
+    }
+
+    function randomGrid() {
+      grid = createGrid().map(row => row.map(() => Math.random() > 0.8 ? 1 : 0));
+      previousStates = [];
+      drawGrid();
+    }
+
+    function galaxyPattern() {
+      clearGrid();
+      for (let i = 0; i < 50; i++) {
+        const cx = Math.floor(Math.random() * cols);
+        const cy = Math.floor(Math.random() * rows);
+        for (let y = -1; y <= 1; y++) {
+          for (let x = -1; x <= 1; x++) {
+            const nx = cx + x;
+            const ny = cy + y;
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+              grid[ny][nx] = Math.random() > 0.3 ? 1 : 0;
+            }
+          }
+        }
+      }
+      drawGrid();
+    }
+
+    function animateDyingCells(dying) {
+      dying.forEach(([x, y]) => {
+        ctx.fillStyle = "#f00";
+        ctx.globalAlpha = 0.4;
+        ctx.fillRect(x * size, y * size, size - 1, size - 1);
+        ctx.globalAlpha = 1.0;
+      });
+    }
+
+    function setSpeed(val) {
+      speed = parseInt(val);
+    }
+
+    function toggleColorMode() {
+      galaxyMode = !galaxyMode;
+      colorPickerLabel.style.display = galaxyMode ? "none" : "inline-block";
+      drawGrid();
+    }
+
+    function loop() {
+      if (running) updateGrid();
+      setTimeout(loop, speed);
+    }
+
+    galaxyPattern(); // Start with pattern
+    drawGrid();
+    loop();
+  </script>
+</body>
+</html>
